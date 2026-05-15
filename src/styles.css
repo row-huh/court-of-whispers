@@ -80,9 +80,12 @@
   --accent-foreground: oklch(0.96 0.02 80);
   --destructive: oklch(0.55 0.22 27);
   --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
+  --border: oklch(0.32 0.025 60);
+  --input: oklch(0.28 0.025 55);
+  --ring: oklch(0.78 0.15 78);
+  --proof: oklch(0.6 0.22 30);             /* bishop's proof bar - blood */
+  --suspicion: oklch(0.55 0.2 320);        /* bishop suspicion - purple */
+  --trust: oklch(0.78 0.15 78);            /* gold */
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
