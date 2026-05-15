@@ -108,9 +108,12 @@ export function generateEndOfDayGossip(
 export function applyGossipEffects(
   state: GameState,
   gossip: AgentConversation[],
-): Partial<GameState> {
-  let trust = { ...state.trust };
+): { suspicion?: number } {
   let suspicion = state.suspicion;
+
+  if (!gossip || gossip.length === 0) {
+    return {};
+  }
 
   for (const conv of gossip) {
     // If Bishop and Citizen converse negatively, increase suspicion
@@ -123,5 +126,5 @@ export function applyGossipEffects(
     }
   }
 
-  return { trust, suspicion };
+  return suspicion !== state.suspicion ? { suspicion } : {};
 }

@@ -25,7 +25,7 @@ function clamp(n: number, lo = 0, hi = 100) {
 }
 
 function Game() {
-  const [state, setState] = useState<GameState>(initialGameState);
+  const [state, setState] = useState<GameState>(initialGameState());
   const [active, setActive] = useState<AgentId>("commander");
   const [pending, setPending] = useState(false);
 
@@ -155,10 +155,10 @@ function Game() {
         turnsLeft = 5;
         
         // Generate end-of-day agent gossip
-        const gossip = generateEndOfDayGossip({ ...s, day: day - 1, turnsLeft: 0 });
+        const gossip = generateEndOfDayGossip(s);
         agentConversations = [...agentConversations, ...gossip];
         
-        const gossipEffects = applyGossipEffects({ ...s, day: day - 1, turnsLeft: 0 }, gossip);
+        const gossipEffects = applyGossipEffects(s, gossip);
         if (gossipEffects.suspicion !== undefined) {
           suspicion = gossipEffects.suspicion;
         }
