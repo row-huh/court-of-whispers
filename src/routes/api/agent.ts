@@ -2,12 +2,12 @@ import "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { generateObject } from "ai";
 import { z } from "zod";
-import { createLovableAiGatewayProvider } from "@/lib/ai-gateway";
+import { google } from "@ai-sdk/google";
 import { SYSTEM_PROMPTS } from "@/lib/game/agents";
 import { DIRT_BY_ID } from "@/lib/game/dirt-sheet";
 import type { AgentId, ChatMsg } from "@/lib/game/types";
 
-const MODEL = "google/gemini-3.1-flash-lite-preview";
+const MODEL = "gemini-3.1-flash-lite";
 
 const responseSchema = z.object({
   reply: z.string().max(600),
@@ -77,16 +77,15 @@ export const Route = createFileRoute("/api/agent")({
         if (!body?.agentId || !SYSTEM_PROMPTS[body.agentId]) {
           return new Response("bad agentId", { status: 400 });
         }
-        const key = process.env.LOVABLE_API_KEY;
-        if (!key) return new Response("missing LOVABLE_API_KEY", { status: 500 });
 
-        const gateway = createLovableAiGatewayProvider(key);
-        const model = gateway(MODEL);
+        const model = google(MODEL);
 
-        const messages = [
-          { role: "system" as const, content: SYSTEM_PROMPTS[body.agentId] },
-          { role: "system" as const, content: buildContextHeader(body) },
-          ...body.history.map((m) => ({ role: m.role, content: m.content })),
+        // FIX 1: Combine your system prompts into a single clean string
+        const combinedSystemPrompt = `${SYSTEM_PROMPTS[body.agentId]}\n\n${buildContextHeader(body)}`;
+
+        // FIX 2: Only include standard conversation history and user messages here
+        const conversationMessages = [
+          ...body.history.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
           { role: "user" as const, content: body.userMessage },
         ];
 
@@ -94,7 +93,8 @@ export const Route = createFileRoute("/api/agent")({
           const { object } = await generateObject({
             model,
             schema: responseSchema,
-            messages,
+            system: combinedSystemPrompt, // FIX 3: Pass system instructions into the dedicated 'system' parameter
+            messages: conversationMessages,
             temperature: 0.85,
           });
           return Response.json(object);

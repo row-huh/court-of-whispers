@@ -2,11 +2,11 @@ import "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { generateObject } from "ai";
 import { z } from "zod";
-import { createLovableAiGatewayProvider } from "@/lib/ai-gateway";
+import { google } from "@ai-sdk/google";
 import type { AgentId, NightExchange } from "@/lib/game/types";
 import { DIRT_BY_ID } from "@/lib/game/dirt-sheet";
 
-const MODEL = "google/gemini-3.1-flash-lite-preview";
+const MODEL = "gemini-3.1-flash-lite";
 
 const exchangeSchema = z.object({
   from: z.enum(["commander", "citizen", "priest"]),
@@ -77,11 +77,7 @@ export const Route = createFileRoute("/api/night")({
         } catch {
           return new Response("bad json", { status: 400 });
         }
-        const key = process.env.LOVABLE_API_KEY;
-        if (!key) return new Response("missing LOVABLE_API_KEY", { status: 500 });
-
-        const gateway = createLovableAiGatewayProvider(key);
-        const model = gateway(MODEL);
+        const model = google(MODEL);
 
         const spilled =
           body.priestSpilledDirt.map((id) => DIRT_BY_ID[id]?.short ?? id).join(", ") ||
@@ -108,8 +104,8 @@ export const Route = createFileRoute("/api/night")({
           const { object } = await generateObject({
             model,
             schema: nightSchema,
+            system: NIGHT_SYSTEM,
             messages: [
-              { role: "system", content: NIGHT_SYSTEM },
               { role: "user", content: context },
             ],
             temperature: 0.9,
