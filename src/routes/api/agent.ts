@@ -32,6 +32,7 @@ const responseSchema = z.object({
   proofDelta: z.number().min(0).max(30).optional(),
   proofEvidence: z.string().max(160).optional(),
   gossipScore: z.number().min(0).max(15).optional(),
+  suspicionDelta: z.number().min(-20).max(15).optional(),
   performCoup: z.boolean().optional(),
   informBishop: z.boolean().optional(),
   informKing: z.boolean().optional(),

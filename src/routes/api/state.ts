@@ -30,7 +30,7 @@ const DEFAULT_STATE: GameState = {
   turnsLeft: 5,
   proof: 0,
   suspicion: 0,
-  trust: { commander: 30, citizen: 30, priest: 30 },
+  trust: { commander: 30, citizen: 50, priest: 30 },
   priestFear: 0,
   citizenOfferedBlackmail: false,
   citizenAcceptedDirt: false,

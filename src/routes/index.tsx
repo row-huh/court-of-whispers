@@ -88,7 +88,19 @@ function Game() {
           }),
         });
         if (!res.ok) throw new Error(String(res.status));
-        const { exchanges } = (await res.json()) as { exchanges: NightExchange[] };
+        const reader = res.body?.getReader();
+        if (!reader) throw new Error("No response body stream available");
+
+        const decoder = new TextDecoder();
+        let raw = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (value) raw += decoder.decode(value, { stream: true });
+        }
+        raw += decoder.decode();
+
+        const { exchanges } = JSON.parse(raw) as { exchanges: NightExchange[] };
         applyNightExchanges(exchanges);
       } catch (e) {
         console.error(e);
@@ -142,14 +154,10 @@ function Game() {
       if (ratted) {
         status = "lost";
         endingMessage = `${AGENT_META[ratted].name} walked to the Bishop in the dead of night. Your name was the first word spoken.`;
-      } else if (proof >= 100) {
+      } else if (proof >= 100 && status === "playing") {
         status = "lost";
         endingMessage =
           "By dawn, the Bishop has enough. He kneels before the king with his ledger of your sins.";
-      } else if (suspicion >= 100) {
-        status = "lost";
-        endingMessage =
-          "The whispers reached the Bishop too clearly in the night. The guards come before sunrise.";
       }
 
       return {
@@ -238,6 +246,34 @@ function Game() {
     [state, active, pending],
   );
 
+  const syncStateToBackend = async (s: GameState) => {
+    try {
+      await fetch("/api/state", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          day: s.day,
+          turnsLeft: s.turnsLeft,
+          proof: s.proof,
+          suspicion: s.suspicion,
+          trust: {
+            commander: s.agents.commander.trust,
+            citizen: s.agents.citizen.trust,
+            priest: s.agents.priest.trust,
+          },
+          priestFear: s.agents.priest.fear,
+          citizenOfferedBlackmail: s.citizenOfferedBlackmail,
+          citizenAcceptedDirt: s.citizenAcceptedDirt,
+          citizenEndorsedCommander: s.citizenEndorsedCommander,
+          priestSpilledDirt: s.priestSpilledDirt,
+          status: s.status,
+        }),
+      });
+    } catch (err) {
+      console.warn("State sync failed", err);
+    }
+  };
+
   const applyDelta = (agent: AgentId, d: AgentDelta) => {
     setState((s) => {
       const agents = {
@@ -261,7 +297,7 @@ function Game() {
       let citizenAcceptedDirt = s.citizenAcceptedDirt;
       let citizenEndorsedCommander = s.citizenEndorsedCommander;
       if (agent === "citizen") {
-        if (d.citizenOfferBlackmail && agents.citizen.trust >= 50) citizenOfferedBlackmail = true;
+        if (d.citizenOfferBlackmail && agents.citizen.trust >= 80) citizenOfferedBlackmail = true;
         if (d.citizenAcceptDirt && s.priestSpilledDirt.length > 0) citizenAcceptedDirt = true;
         if (d.citizenEndorse && s.priestSpilledDirt.length > 0 && agents.citizen.trust >= 70) {
           citizenEndorsedCommander = true;
@@ -292,6 +328,7 @@ function Game() {
       // Gossip → suspicion (any non-bishop)
       let suspicion = s.suspicion;
       if (agent !== "bishop" && d.gossipScore) suspicion = clamp(suspicion + d.gossipScore);
+      if (typeof d.suspicionDelta === "number") suspicion = clamp(suspicion + d.suspicionDelta);
 
       // Conversation entry with meta for animation
       const meta = {
@@ -344,11 +381,6 @@ function Game() {
             "Sir Alaric draws his sword and turns it on the king. The throne is yours, false heir. The artistry is complete.";
         } else {
           suspicion = clamp(suspicion + 12);
-          if (suspicion >= 100 && status === "playing") {
-            status = "lost";
-            endingMessage =
-              "The Commander balked. Whispers of your asking reached the Bishop within the hour.";
-          }
         }
       }
 
@@ -362,11 +394,6 @@ function Game() {
         endingMessage =
           "The Bishop has gathered enough. He kneels before the king with his evidence.";
       }
-      if (suspicion >= 100 && status === "playing") {
-        status = "lost";
-        endingMessage =
-          "The whispers reach the Bishop too clearly. He moves against you before you can act.";
-      }
 
       // Final day exhausted
       if (turnsLeft <= 0 && day >= 5 && status === "playing") {
@@ -374,7 +401,7 @@ function Game() {
         // We mark a soft flag by checking after night via day>=5
       }
 
-      return {
+      const nextState = {
         ...s,
         agents,
         citizenOfferedBlackmail,
@@ -391,6 +418,9 @@ function Game() {
         status,
         endingMessage,
       };
+
+      void syncStateToBackend(nextState);
+      return nextState;
     });
   };
 

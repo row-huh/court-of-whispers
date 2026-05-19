@@ -1,6 +1,6 @@
 import "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
-import { generateObject } from "ai";
+import { streamObject } from "ai";
 import { z } from "zod";
 import { google } from "@ai-sdk/google";
 import type { AgentId, NightExchange } from "@/lib/game/types";
@@ -101,7 +101,7 @@ export const Route = createFileRoute("/api/night")({
         ].join("\n");
 
         try {
-          const { object } = await generateObject({
+          const stream = streamObject({
             model,
             schema: nightSchema,
             system: NIGHT_SYSTEM,
@@ -111,20 +111,12 @@ export const Route = createFileRoute("/api/night")({
             temperature: 0.9,
           });
 
-          const exchanges: NightExchange[] = object.exchanges.map((e) => ({
-            day: body.day,
-            from: e.from,
-            to: e.to,
-            line: e.line,
-            reply: e.reply,
-            effects: {
-              suspicionDelta: e.suspicionDelta,
-              proofDelta: e.proofDelta,
-              proofEvidence: e.proofEvidence,
-              trustDeltas: e.trustDeltas,
+          return stream.toTextStreamResponse({
+            status: 200,
+            headers: {
+              "Content-Type": "application/json; charset=utf-8",
             },
-          }));
-          return Response.json({ exchanges });
+          });
         } catch (err) {
           const e = err as { statusCode?: number; message?: string };
           const status = e?.statusCode === 429 ? 429 : e?.statusCode === 402 ? 402 : 500;

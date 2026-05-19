@@ -83,6 +83,7 @@ export interface AgentDelta {
   proofDelta?: number;             // bishop
   proofEvidence?: string;          // bishop
   gossipScore?: number;            // 0..15, raises bishop suspicion (commander/citizen/priest)
+  suspicionDelta?: number;         // bishop can reduce suspicion if convinced
   performCoup?: boolean;           // commander
   informBishop?: boolean;          // any non-bishop agent: rats you out -> loss
   informKing?: boolean;            // bishop
