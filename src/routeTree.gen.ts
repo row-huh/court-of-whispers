@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiStateRouteImport } from './routes/api/state'
 import { Route as ApiNightRouteImport } from './routes/api/night'
 import { Route as ApiAgentRouteImport } from './routes/api/agent'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStateRoute = ApiStateRouteImport.update({
+  id: '/api/state',
+  path: '/api/state',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiNightRoute = ApiNightRouteImport.update({
@@ -33,30 +39,34 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/agent': typeof ApiAgentRoute
   '/api/night': typeof ApiNightRoute
+  '/api/state': typeof ApiStateRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/agent': typeof ApiAgentRoute
   '/api/night': typeof ApiNightRoute
+  '/api/state': typeof ApiStateRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/agent': typeof ApiAgentRoute
   '/api/night': typeof ApiNightRoute
+  '/api/state': typeof ApiStateRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/agent' | '/api/night'
+  fullPaths: '/' | '/api/agent' | '/api/night' | '/api/state'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/agent' | '/api/night'
-  id: '__root__' | '/' | '/api/agent' | '/api/night'
+  to: '/' | '/api/agent' | '/api/night' | '/api/state'
+  id: '__root__' | '/' | '/api/agent' | '/api/night' | '/api/state'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiAgentRoute: typeof ApiAgentRoute
   ApiNightRoute: typeof ApiNightRoute
+  ApiStateRoute: typeof ApiStateRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/state': {
+      id: '/api/state'
+      path: '/api/state'
+      fullPath: '/api/state'
+      preLoaderRoute: typeof ApiStateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/night': {
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiAgentRoute: ApiAgentRoute,
   ApiNightRoute: ApiNightRoute,
+  ApiStateRoute: ApiStateRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

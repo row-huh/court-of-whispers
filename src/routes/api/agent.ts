@@ -1,6 +1,6 @@
 import "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
-import { generateObject } from "ai";
+import { streamObject } from "ai";
 import { z } from "zod";
 import { google } from "@ai-sdk/google";
 import { SYSTEM_PROMPTS } from "@/lib/game/agents";
@@ -102,14 +102,20 @@ export const Route = createFileRoute("/api/agent")({
         ];
 
         try {
-          const { object } = await generateObject({
+          const stream = streamObject({
             model,
             schema: responseSchema,
-            system: combinedSystemPrompt, // FIX 3: Pass system instructions into the dedicated 'system' parameter
+            system: combinedSystemPrompt,
             messages: conversationMessages,
             temperature: 0.85,
           });
-          return Response.json(object);
+
+          return stream.toTextStreamResponse({
+            status: 200,
+            headers: {
+              "Content-Type": "application/json; charset=utf-8",
+            },
+          });
         } catch (err) {
           const e = err as { statusCode?: number; message?: string };
           const status = e?.statusCode === 429 ? 429 : e?.statusCode === 402 ? 402 : 500;

@@ -214,7 +214,19 @@ function Game() {
           return;
         }
         if (!res.ok) throw new Error(`agent ${res.status}`);
-        const delta = (await res.json()) as AgentDelta;
+        const reader = res.body?.getReader();
+        if (!reader) throw new Error("No response body stream available");
+
+        const decoder = new TextDecoder();
+        let raw = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (value) raw += decoder.decode(value, { stream: true });
+        }
+        raw += decoder.decode();
+
+        const delta = JSON.parse(raw) as AgentDelta;
         applyDelta(active, delta);
       } catch (e) {
         console.error(e);
